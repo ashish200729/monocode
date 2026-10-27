@@ -428,33 +428,45 @@ export function resolveModel(harness: HarnessId, id?: string): AgentModel {
         available,
       );
     }
+    // The Codex CLI can leave a model out of its list (it drops hidden ones),
+    // yet still run it. Keep what the user picked rather than falling back to
+    // the catalog's first entry, which turned Sol into Luna.
+    if (harness === "codex" && requested.startsWith("codex:")) {
+      return savedModelStub(harness, requested);
+    }
   }
   // Codex has no built-in catalog. During startup, retain the saved model
   // until discovery finishes instead of borrowing another provider's model.
   if (available.length === 0) {
     const requested = id?.trim() ?? "";
-    const modelId =
-      requested &&
-      (!requested.includes(":") || requested.startsWith(`${harness}:`))
-        ? requested
-        : "";
-    const nativeId = nativeIdFrom(modelId);
-    return {
-      id: modelId,
+    return savedModelStub(
       harness,
-      name: nativeId
-        ? nativeId
-            .replace(/^gpt/i, "GPT")
-            .replace(
-              /-([a-z])/g,
-              (_, letter: string) => `-${letter.toUpperCase()}`,
-            )
-        : harness.charAt(0).toUpperCase() + harness.slice(1),
-      nativeId,
-    };
+      requested &&
+        (!requested.includes(":") || requested.startsWith(`${harness}:`))
+        ? requested
+        : "",
+    );
   }
   const fallbackId = defaultModelId(harness);
   return (fallbackId ? findModel(fallbackId) : undefined) ?? available[0];
+}
+
+/** A model known only by its saved id, named the way the Codex catalog does. */
+function savedModelStub(harness: HarnessId, modelId: string): AgentModel {
+  const nativeId = nativeIdFrom(modelId);
+  return {
+    id: modelId,
+    harness,
+    name: nativeId
+      ? nativeId
+          .replace(/^gpt/i, "GPT")
+          .replace(
+            /-([a-z])/g,
+            (_, letter: string) => `-${letter.toUpperCase()}`,
+          )
+      : harness.charAt(0).toUpperCase() + harness.slice(1),
+    nativeId,
+  };
 }
 
 /**

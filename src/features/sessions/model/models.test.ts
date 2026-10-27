@@ -406,6 +406,27 @@ describe("live catalog overlays", () => {
     });
   });
 
+  it("keeps a saved Codex model the live catalog does not list", () => {
+    setHarnessModels("codex", [
+      {
+        id: "codex:gpt-5.6-luna",
+        harness: "codex",
+        name: "GPT-5.6-Luna",
+        nativeId: "gpt-5.6-luna",
+      },
+    ]);
+    // Sol is chosen in the prompt box but the CLI's list omits it (for
+    // example when it flags the model hidden). It must not turn into Luna.
+    expect(resolveModel("codex", "codex:gpt-5.6-sol")).toMatchObject({
+      id: "codex:gpt-5.6-sol",
+      harness: "codex",
+      name: "GPT-5.6-Sol",
+      nativeId: "gpt-5.6-sol",
+    });
+    // A request with no saved model still takes the catalog's first entry.
+    expect(resolveModel("codex").id).toBe("codex:gpt-5.6-luna");
+  });
+
   it("is empty until a CLI catalog replaces the fallback list", () => {
     expect(hasLiveCatalog("pi")).toBe(false);
     setHarnessModels("pi", [
